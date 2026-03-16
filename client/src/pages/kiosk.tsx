@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Clock, LogIn, LogOut, Settings, CheckCircle2, XCircle, Delete } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
+import tritonLogo from "@assets/triton-logo.png";
 import type { Employee } from "@shared/schema";
 
 function LiveClock() {
@@ -68,7 +68,6 @@ export default function KioskPage() {
       setResult(data);
       setPin("");
       queryClient.invalidateQueries({ queryKey: ["/api/status"] });
-      // Auto-dismiss result after 4 seconds
       setTimeout(() => setResult(null), 4000);
     },
     onError: (error: Error) => {
@@ -100,7 +99,6 @@ export default function KioskPage() {
     }
   }, [pin, clockMutation]);
 
-  // Keyboard support
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (result) {
@@ -119,7 +117,6 @@ export default function KioskPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [handleDigit, handleBackspace, handleSubmit, result]);
 
-  // Show result overlay
   if (result) {
     const isClockIn = result.action === "clock_in";
     return (
@@ -169,12 +166,9 @@ export default function KioskPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={tritonLogo} alt="Triton Construction" className="h-9 object-contain" />
           <span className="font-semibold text-lg" data-testid="app-title">
             TimeClock
           </span>
@@ -187,14 +181,11 @@ export default function KioskPage() {
         </Link>
       </header>
 
-      {/* Main */}
       <main className="flex-1 flex flex-col lg:flex-row">
-        {/* Left: PIN Pad */}
         <div className="flex-1 flex flex-col items-center justify-center p-8 gap-8">
           <LiveClock />
 
           <div className="w-full max-w-xs space-y-6">
-            {/* PIN display */}
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-3 font-medium">
                 Enter your PIN
@@ -216,7 +207,6 @@ export default function KioskPage() {
               </div>
             </div>
 
-            {/* Number pad */}
             <div className="grid grid-cols-3 gap-3" data-testid="number-pad">
               {digits.map((digit) => (
                 <Button
@@ -261,7 +251,6 @@ export default function KioskPage() {
           </div>
         </div>
 
-        {/* Right: Status panel */}
         <aside className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l bg-card p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
             Who's In
@@ -313,9 +302,6 @@ export default function KioskPage() {
         </aside>
       </main>
 
-      <footer className="border-t px-6 py-3 flex items-center justify-center">
-        <PerplexityAttribution />
-      </footer>
     </div>
   );
 }
