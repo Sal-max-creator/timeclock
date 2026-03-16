@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, setAdminToken, getAdminToken } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,9 @@ import {
   LogIn,
   LogOut,
   Timer,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PerplexityAttribution } from "@/components/PerplexityAttribution";
@@ -57,7 +60,123 @@ function formatDate(date: string | Date): string {
   });
 }
 
-export default function AdminPage() {
+function AdminLogin({ onLogin }: { onLogin: () => void }) {
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `${"__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__"}/api/admin/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setAdminToken(data.token);
+        onLogin();
+      } else {
+        setError("Wrong password");
+        setPassword("");
+      }
+    } catch {
+      setError("Connection error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b px-6 py-4 flex items-center justify-between">
+        <Link href="/">
+          <Button variant="ghost" size="sm" data-testid="back-btn">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Kiosk
+          </Button>
+        </Link>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+            <Clock className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="font-semibold text-lg">TimeClock Admin</span>
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center p-8">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle className="text-lg">Admin Login</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Enter the admin password to continue
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="admin-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
+                    data-testid="admin-password-input"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              {error && (
+                <p className="text-sm text-destructive" data-testid="login-error">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={!password || loading}
+                data-testid="admin-login-btn"
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+
+      <footer className="border-t px-6 py-3 flex items-center justify-center">
+        <PerplexityAttribution />
+      </footer>
+    </div>
+  );
+}
+
+function AdminDashboard() {
   const [newName, setNewName] = useState("");
   const [newPin, setNewPin] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -119,19 +238,22 @@ export default function AdminPage() {
     addEmployeeMutation.mutate({ name: newName.trim(), pin: newPin.trim() });
   };
 
-  // Calculate today's entries
+  const handleLogout = () => {
+    apiRequest("POST", "/api/admin/logout").catch(() => {});
+    setAdminToken(null);
+    window.location.reload();
+  };
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayEntries = timeEntries.filter(
     (e) => new Date(e.clockIn) >= today
   );
 
-  // Sort entries newest first
   const sortedEntries = [...timeEntries].sort(
     (a, b) => new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime()
   );
 
-  // Calculate total hours per employee for today
   const employeeHoursToday = new Map<number, number>();
   todayEntries.forEach((entry) => {
     const clockOut = entry.clockOut
@@ -149,7 +271,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/">
@@ -159,16 +280,26 @@ export default function AdminPage() {
             </Button>
           </Link>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+              <Clock className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-lg">TimeClock Admin</span>
           </div>
-          <span className="font-semibold text-lg">TimeClock Admin</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Log Out
+          </Button>
         </div>
       </header>
 
       <main className="flex-1 p-6 max-w-5xl mx-auto w-full space-y-6">
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
@@ -223,7 +354,6 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Employees */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Employees</CardTitle>
@@ -342,7 +472,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* Time Log */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -418,4 +547,41 @@ export default function AdminPage() {
       </footer>
     </div>
   );
+}
+
+export default function AdminPage() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    // Check if we already have a valid token
+    const token = getAdminToken();
+    if (token) {
+      fetch(
+        `${"__PORT_5000__".startsWith("__") ? "" : "__PORT_5000__"}/api/admin/verify`,
+        { headers: { "x-admin-token": token } }
+      )
+        .then((res) => {
+          if (res.ok) setAuthenticated(true);
+          setChecking(false);
+        })
+        .catch(() => setChecking(false));
+    } else {
+      setChecking(false);
+    }
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return <AdminLogin onLogin={() => setAuthenticated(true)} />;
+  }
+
+  return <AdminDashboard />;
 }
