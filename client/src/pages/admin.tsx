@@ -35,7 +35,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PerplexityAttribution } from "@/components/PerplexityAttribution";
+import tritonLogo from "@assets/triton-logo.png";
 import type { Employee, TimeEntry } from "@shared/schema";
 
 function formatDuration(ms: number): string {
@@ -106,9 +106,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
           </Button>
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={tritonLogo} alt="Triton Construction" className="h-9 object-contain" />
           <span className="font-semibold text-lg">TimeClock Admin</span>
         </div>
       </header>
@@ -169,9 +167,6 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
         </Card>
       </main>
 
-      <footer className="border-t px-6 py-3 flex items-center justify-center">
-        <PerplexityAttribution />
-      </footer>
     </div>
   );
 }
@@ -282,9 +277,7 @@ function AdminDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Clock className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src={tritonLogo} alt="Triton Construction" className="h-9 object-contain" />
             <span className="font-semibold text-lg">TimeClock Admin</span>
           </div>
           <Button
@@ -452,7 +445,7 @@ function AdminDashboard() {
                       <TableCell className="tabular-nums">
                         {employeeHoursToday.has(emp.id)
                           ? formatDuration(employeeHoursToday.get(emp.id)!)
-                          : "—"}
+                          : "\u2014"}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -542,9 +535,6 @@ function AdminDashboard() {
         </Card>
       </main>
 
-      <footer className="border-t px-6 py-3 flex items-center justify-center">
-        <PerplexityAttribution />
-      </footer>
     </div>
   );
 }
@@ -554,7 +544,6 @@ export default function AdminPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if we already have a valid token
     const token = getAdminToken();
     if (token) {
       fetch(
